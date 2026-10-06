@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>FeedJack v1.01</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ================= FIREBASE CONFIG START (only edit inside this block) =================
+// databaseURL is REQUIRED and must match FIREBASE_DB_REGION.
+//   europe-west1 : https://<project>-default-rtdb.europe-west1.firebasedatabase.app
+//   us-central1  : https://<project>-default-rtdb.firebaseio.com
+const FIREBASE_DB_REGION = "europe-west1";
+const firebaseConfig = {
+  apiKey: "AIzaSyD7Ei2QkUkcnU6XxLOKUseQ2q2x8-4JAjg",
+  authDomain: "feedjack-21557.firebaseapp.com",
+  databaseURL: "https://feedjack-21557-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "feedjack-21557",
+  storageBucket: "feedjack-21557.firebasestorage.app",
+  messagingSenderId: "859416540513",
+  appId: "1:859416540513:web:1599326ad4e4c975b1c120"
+};
+// ================= FIREBASE CONFIG END =================
+</script>
+<style>
+[hidden]{display:none !important;}
+*{box-sizing:border-box;}
+:root{
+  --ink:#1e1b2e; --paper:#fffdf6; --sun:#ffe066; --coral:#ff6b6b; --teal:#4ecdc4;
+  --grape:#9b5de5; --lime:#b8f35a; --sky:#74c0fc; --line:4px solid var(--ink);
+  --shadow:6px 6px 0 var(--ink); --font:"Arial Rounded MT Bold","Nunito","Trebuchet MS",system-ui,sans-serif;
+}
+html,body{margin:0;min-height:100%;}
+body{
+  font-family:var(--font); color:var(--ink); background-color:var(--sun);
+  background-image:radial-gradient(rgba(30,27,46,.13) 2px, transparent 2.5px);
+  background-size:22px 22px; padding:64px 14px 56px;
+}
+.topbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 16px;background:var(--paper);border-bottom:var(--line);z-index:5;}
+.logo{font-size:22px;font-weight:900;letter-spacing:.5px;}
+.conn{font-size:14px;font-weight:800;padding:4px 12px;border:3px solid var(--ink);border-radius:999px;background:#ddd;}
+.conn.on{background:var(--lime);}
+.conn.off{background:var(--coral);color:#fff;}
+.ver{position:fixed;right:10px;bottom:8px;font-size:13px;font-weight:800;background:var(--paper);
+  border:3px solid var(--ink);border-radius:10px;padding:2px 8px;z-index:6;}
+.err{position:fixed;left:50%;top:70px;transform:translateX(-50%);width:min(560px,94vw);z-index:7;
+  background:var(--coral);color:#fff;border:var(--line);border-radius:18px;box-shadow:var(--shadow);
+  padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:17px;}
+.err b{background:var(--ink);border-radius:8px;padding:2px 8px;}
+.err span{flex:1;}
+.err button{font:inherit;font-weight:900;border:3px solid var(--ink);border-radius:10px;background:var(--paper);padding:6px 12px;cursor:pointer;}
+main{max-width:980px;margin:0 auto;}
+.card{background:var(--paper);border:var(--line);border-radius:24px;box-shadow:var(--shadow);padding:22px;margin:14px auto;}
+h1{font-size:clamp(30px,6vw,56px);margin:0 0 6px;line-height:1.05;}
+h2{font-size:clamp(22px,4vw,36px);margin:0 0 10px;line-height:1.15;}
+.sub{font-size:18px;margin:0 0 18px;}
+.btn{display:block;width:100%;font:inherit;font-size:20px;font-weight:900;color:var(--ink);background:var(--teal);
+  border:var(--line);border-radius:18px;box-shadow:4px 4px 0 var(--ink);padding:16px;margin:12px 0;cursor:pointer;}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+.btn.alt{background:var(--coral);color:#fff;}
+.btn.ghost{background:var(--paper);}
+.btn.grape{background:var(--grape);color:#fff;}
+.btn:disabled{opacity:.55;cursor:default;}
+.busy::after{content:" ⏳";}
+label{display:block;font-weight:900;font-size:17px;margin:12px 0 6px;}
+input{width:100%;font:inherit;font-size:22px;padding:12px 14px;border:var(--line);border-radius:14px;background:#fff;}
+#inCode{text-transform:uppercase;letter-spacing:8px;font-weight:900;}
+.big-emoji{font-size:clamp(56px,12vw,110px);line-height:1;margin:6px 0 10px;}
+.center{text-align:center;}
+.code{font-size:clamp(56px,12vw,120px);font-weight:900;letter-spacing:12px;background:var(--sky);
+  border:var(--line);border-radius:20px;display:inline-block;padding:4px 22px;box-shadow:var(--shadow);margin:6px 0 12px;}
+.link{font-size:18px;font-weight:800;word-break:break-all;background:#fff;border:3px dashed var(--ink);border-radius:12px;padding:8px 12px;display:inline-block;}
+.chips{list-style:none;padding:0;margin:14px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+.chip{background:#fff;border:3px solid var(--ink);border-radius:999px;padding:7px 14px;font-size:19px;font-weight:800;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chip.over{background:#ddd;opacity:.7;}
+.chip.done{background:var(--lime);}
+.count{font-size:22px;font-weight:900;}
+.hint{font-size:17px;margin:6px 0 0;}
+.qnum{display:inline-block;background:var(--grape);color:#fff;font-weight:900;border:3px solid var(--ink);border-radius:999px;padding:4px 14px;margin-bottom:10px;}
+.progress{height:26px;border:var(--line);border-radius:999px;background:#fff;overflow:hidden;margin:12px 0;}
+.progress div{height:100%;width:0;background:var(--teal);transition:width .3s;}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:21px;font-weight:800;color:var(--ink);background:#fff;
+  border:var(--line);border-radius:16px;box-shadow:4px 4px 0 var(--ink);padding:14px 16px;margin:10px 0;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.opt:nth-child(4n+1){background:#fff3bf;}
+.opt:nth-child(4n+2){background:#d3f9d8;}
+.opt:nth-child(4n+3){background:#d0ebff;}
+.opt:nth-child(4n+4){background:#ffdeeb;}
+.opt:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+.opt:disabled{opacity:.45;cursor:default;}
+.bar-row{display:grid;grid-template-columns:minmax(120px,32%) 1fr 48px;gap:10px;align-items:center;margin:8px 0;font-size:clamp(16px,2.2vw,22px);font-weight:800;}
+.bar-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{height:30px;border:3px solid var(--ink);border-radius:12px;background:#fff;overflow:hidden;}
+.bar-fill{height:100%;background:var(--coral);}
+.bar-row.top .bar-fill{background:var(--grape);}
+.bar-n{text-align:right;font-size:clamp(18px,2.4vw,26px);}
+.note{font-size:20px;font-weight:900;margin-top:10px;}
+.award{background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 14px;margin:10px 0;}
+.award-q{font-size:17px;}
+.award-w{font-size:clamp(20px,3vw,28px);font-weight:900;margin-top:4px;}
+#scrHQuestion .big-emoji{font-size:60px;margin:0;}
+#scrHQuestion h1{font-size:clamp(28px,4.4vw,46px);}
+@media (min-width:900px){ body{padding-top:76px;} .card{padding:30px 36px;} }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="logo">🃏 FeedJack</span>
+  <span id="conn" class="conn">Verbinde...</span>
+</header>
+
+<div id="errBox" class="err" role="alert" hidden>
+  <b id="errCode"></b><span id="errMsg"></span><button id="errClose" type="button">OK</button>
+</div>
+
+<main>
+  <section id="scrHome" class="screen card center">
+    <div class="big-emoji">🃏</div>
+    <h1>FeedJack</h1>
+    <p class="sub">Ehrliches Feedback, mit einem Augenzwinkern.</p>
+    <button id="btnHost" class="btn grape" type="button">Ich bin Host (grosser Screen)</button>
+    <button id="btnToJoin" class="btn" type="button">Ich spiele mit</button>
+    <div id="resumeBox" hidden>
+      <button id="btnResume" class="btn ghost" type="button">Raum <span id="resumeCode"></span> weiterführen</button>
+    </div>
+  </section>
+
+  <section id="scrJoin" class="screen card" hidden>
+    <h2>Mitspielen 🎟️</h2>
+    <label for="inCode">Raumcode</label>
+    <input id="inCode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label for="inName">Dein Name</label>
+    <input id="inName" type="text" autocomplete="off" spellcheck="false">
+    <button id="btnJoin" class="btn alt" type="button">Rein da!</button>
+    <button id="btnJoinBack" class="btn ghost" type="button">Zurück</button>
+  </section>
+
+  <section id="scrWait" class="screen card center" hidden>
+    <div id="wEmoji" class="big-emoji"></div>
+    <h2 id="wTitle"></h2>
+    <p id="wText" class="sub"></p>
+  </section>
+
+  <section id="scrPQuestion" class="screen card" hidden>
+    <span id="pQNum" class="qnum"></span>
+    <div id="pQEmoji" class="big-emoji"></div>
+    <h2 id="pQText"></h2>
+    <div id="pOptions"></div>
+  </section>
+
+  <section id="scrHLobby" class="screen card center" hidden>
+    <h2>Raumcode</h2>
+    <div id="hCode" class="code"></div>
+    <p class="sub">Handy zücken und hier beitreten:<br><span id="hLink" class="link"></span></p>
+    <div id="hCount" class="count"></div>
+    <ul id="hPlayers" class="chips"></ul>
+    <p id="hLobbyHint" class="hint"></p>
+    <button id="btnStart" class="btn alt" type="button">Los geht's! 🚀</button>
+  </section>
+
+  <section id="scrHQuestion" class="screen card" hidden>
+    <span id="hQNum" class="qnum"></span>
+    <div id="hQEmoji" class="big-emoji"></div>
+    <h1 id="hQText"></h1>
+    <p id="hQKind" class="sub"></p>
+    <div class="progress"><div id="hProgFill"></div></div>
+    <div id="hAnswered" class="count"></div>
+    <ul id="hAnsChips" class="chips"></ul>
+    <button id="btnReveal" class="btn grape" type="button">Auflösen 🥁</button>
+  </section>
+
+  <section id="scrHReveal" class="screen card" hidden>
+    <span id="hRQNum" class="qnum"></span>
+    <h2 id="hRQText"></h2>
+    <div id="hRBars"></div>
+    <div id="hRNote" class="note"></div>
+    <button id="btnNext" class="btn alt" type="button"></button>
+  </section>
+
+  <section id="scrHEnd" class="screen card" hidden>
+    <h1>Siegerehrung 🏆</h1>
+    <div id="hAwards"></div>
+    <button id="btnNewRoom" class="btn ghost" type="button">Neuer Raum</button>
+  </section>
+</main>
+
+<footer id="verTag" class="ver">FeedJack v1.01</footer>
+
+<script>
+"use strict";
+const VERSION = "v1.01";
+const DATA = {"config":{"maxPlayers":8,"minPlayers":2,"nameMaxLen":16,"codeLength":4,"codeChars":"ABCDEFGHJKLMNPQRSTUVWXYZ23456789","codeTries":5,"timeoutMs":9000,"botMinDelayMs":400,"botMaxDelayMs":6000,"botSkipRate":0.15,"botMargin":2},"avatars":["🦊","🐼","🐸","🐙","🦄","🐯","🐨","🐧","🦉","🐢"],"botNames":["Bot Anna","Bot Reto","Bot Maximilian16","Bot Anna","Bot 🍕","Bot Zoe","Bot Urs","Bot Fränzi","Bot Lorenz","Bot Mia"],"questions":[{"id":"held","kind":"person","text":"Wer war diesen Sprint der heimliche Superheld ohne Umhang?","emoji":"🦸"},{"id":"fahrzeug","kind":"scale","text":"Wenn dieser Sprint ein Fahrzeug wäre, welches?","emoji":"🛞","options":[{"emoji":"🐌","label":"Schnecke im Gegenwind"},{"emoji":"🚲","label":"Velo mit Platten"},{"emoji":"🚗","label":"Solider Kombi"},{"emoji":"🚄","label":"Pünktlicher Schnellzug"},{"emoji":"🚀","label":"Rakete"}]},{"id":"notfall","kind":"person","text":"Wen rufst du an, wenn um 3 Uhr nachts alles brennt?","emoji":"🚒"},{"id":"funk","kind":"scale","text":"Wie gut hat unsere Kommunikation funktioniert?","emoji":"📡","options":[{"emoji":"🦗","label":"Grillenzirpen"},{"emoji":"📯","label":"Alphorn über drei Täler"},{"emoji":"🕊️","label":"Brieftaube"},{"emoji":"📞","label":"Direkter Draht"},{"emoji":"🧠","label":"Telepathie"}]},{"id":"laune","kind":"person","text":"Wer bekommt den goldenen Kaffeebecher für die beste Laune?","emoji":"☕"}]};
+const CFG = DATA.config;
+const QUESTIONS = DATA.questions;
+
+const ERRORS = {
+  E01: "Firebase konnte nicht geladen werden. Internet prüfen und Seite neu laden.",
+  E02: "Firebase ist noch nicht eingerichtet (Konfiguration fehlt oder passt nicht).",
+  E03: "Keine Verbindung zu Firebase.",
+  E04: "Raum konnte nicht erstellt werden. Nochmals versuchen.",
+  E05: "Beitreten hat nicht geklappt. Nochmals versuchen.",
+  E06: "Diesen Raum gibt es nicht. Bitte Code prüfen.",
+  E07: "Der Raum ist leider voll.",
+  E08: "Die Runde läuft schon. Beim nächsten Mal bist du dabei.",
+  E09: "Antwort konnte nicht gespeichert werden. Bitte nochmals tippen.",
+  E10: "Spielstand konnte nicht gespeichert werden. Bitte nochmals klicken.",
+  E11: "Bitte gib einen Namen ein.",
+  E12: "Raum weiterführen hat nicht geklappt.",
+  E13: "Interner Datenfehler. Details in der Konsole.",
+  E14: "Testbot konnte nicht schreiben.",
+  E15: "Antworten konnten nicht gelesen werden. Bitte nochmals klicken.",
+  E16: "Live-Verbindung zum Raum unterbrochen. Seite neu laden.",
+  E17: "Frage konnte nicht geladen werden. Seite neu laden."
+};
+
+// Single state object. No other mutable globals.
+const S = {
+  db: null,          // firebase database handle
+  initErr: null,     // error code if firebase init failed
+  connected: false,  // from .info/connected
+  role: null,        // "host" | "player"
+  room: null,        // room code
+  pid: null,         // player id (player only)
+  name: null,        // player name (player only)
+  state: null,       // last state read from DB. Everyone renders from this only.
+  players: {},       // host only: raw players node
+  stateRef: null,
+  playersRef: null,
+  ansRef: null,      // host only: answers listener for current question
+  ansCb: null,
+  ansQ: null,
+  answered: {},      // host only: ids that answered current question
+  botQ: null,        // host only: question index bots were scheduled for
+  renderSeq: 0,      // player only: guards async renders
+  sending: false     // player only: answer write in flight
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+// ---------- helpers ----------
+function fail(code, detail) {
+  const msg = ERRORS[code] || "Unbekannter Fehler.";
+  console.error("[FeedJack]", code, msg, detail || "");
+  $('#errCode').textContent = code;
+  $('#errMsg').textContent = msg;
+  $('#errBox').hidden = false;
+}
+
+function clearErr() {
+  $('#errBox').hidden = true;
+}
+
+function withTimeout(promise, code) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject({ code: code, detail: "Timeout nach " + CFG.timeoutMs + " ms" }), CFG.timeoutMs);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject({ code: code, detail: (e && e.message) || String(e) }); }
+    );
+  });
+}
+
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add("busy");
+  try { await fn(); }
+  catch (e) { fail("E13", (e && e.message) || String(e)); }
+  finally { btn.disabled = false; btn.classList.remove("busy"); }
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((el) => { el.hidden = (el.id !== id); });
+}
+
+function showWait(emoji, title, text) {
+  $('#wEmoji').textContent = emoji;
+  $('#wTitle').textContent = title;
+  $('#wText').textContent = text;
+  showScreen("scrWait");
+}
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* private mode */ } }
+
+function trimTo(s, max) {
+  let out = "";
+  for (const ch of s) { if ((out + ch).length > max) break; out += ch; }
+  return out;
+}
+
+function cleanName(raw) {
+  const s = String(raw || "").replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
+  return trimTo(s, CFG.nameMaxLen).trim();
+}
+
+function cleanCode(raw) {
+  let out = "";
+  for (const ch of String(raw || "").toUpperCase()) { if (CFG.codeChars.indexOf(ch) !== -1) out += ch; }
+  return out.slice(0, CFG.codeLength);
+}
+
+function randCode() {
+  const buf = new Uint32Array(CFG.codeLength);
+  crypto.getRandomValues(buf);
+  let s = "";
+  for (let i = 0; i < buf.length; i++) s += CFG.codeChars[buf[i] % CFG.codeChars.length];
+  return s;
+}
+
+function randId(prefix) {
+  const buf = new Uint32Array(2);
+  crypto.getRandomValues(buf);
+  return prefix + buf[0].toString(36) + buf[1].toString(36);
+}
+
+function roomRef(path) {
+  return S.db.ref("rooms/" + S.room + (path ? "/" + path : ""));
+}
+
+function rosterOf(st) {
+  return (st && Array.isArray(st.roster)) ? st.roster : [];
+}
+
+function qAt(st) {
+  const qi = st ? st.q : null;
+  if (!Number.isInteger(qi) || qi < 0 || qi >= QUESTIONS.length) { fail("E13", "Frageindex ungültig: " + qi); return null; }
+  return QUESTIONS[qi];
+}
+
+function serverTime() {
+  return firebase.database.ServerValue.TIMESTAMP;
+}
+
+// ---------- data validation (runs on load) ----------
+function validateData() {
+  const errs = [];
+  const c = CFG || {};
+  const isInt = (v, min) => Number.isInteger(v) && v >= min;
+  if (!isInt(c.maxPlayers, 2)) errs.push("config.maxPlayers");
+  if (!isInt(c.minPlayers, 2) || c.minPlayers > c.maxPlayers) errs.push("config.minPlayers");
+  if (!isInt(c.nameMaxLen, 1)) errs.push("config.nameMaxLen");
+  if (!isInt(c.codeLength, 3)) errs.push("config.codeLength");
+  if (typeof c.codeChars !== "string" || c.codeChars.length < 10) errs.push("config.codeChars");
+  if (!isInt(c.codeTries, 1)) errs.push("config.codeTries");
+  if (!isInt(c.timeoutMs, 1000)) errs.push("config.timeoutMs");
+  if (!isInt(c.botMinDelayMs, 0) || !isInt(c.botMaxDelayMs, 1) || c.botMinDelayMs >= c.botMaxDelayMs) errs.push("config.botDelay");
+  if (typeof c.botSkipRate !== "number" || c.botSkipRate < 0 || c.botSkipRate >= 1) errs.push("config.botSkipRate");
+  if (!isInt(c.botMargin, 0)) errs.push("config.botMargin");
+  if (!Array.isArray(DATA.avatars) || DATA.avatars.length < c.maxPlayers) errs.push("avatars: weniger als maxPlayers");
+  if (!Array.isArray(DATA.botNames) || !DATA.botNames.length) errs.push("botNames leer");
+  else DATA.botNames.forEach((n, i) => { if (typeof n !== "string" || !n.trim()) errs.push("botNames[" + i + "]"); });
+  if (!Array.isArray(QUESTIONS) || !QUESTIONS.length) errs.push("questions leer");
+  else {
+    const ids = {};
+    QUESTIONS.forEach((q, i) => {
+      const at = "questions[" + i + "]";
+      if (!q || typeof q !== "object") { errs.push(at); return; }
+      if (typeof q.id !== "string" || !q.id) errs.push(at + ".id");
+      else if (ids[q.id]) errs.push(at + ".id doppelt");
+      ids[q.id] = true;
+      if (typeof q.text !== "string" || !q.text.trim()) errs.push(at + ".text");
+      if (typeof q.emoji !== "string" || !q.emoji) errs.push(at + ".emoji");
+      if (q.kind === "scale") {
+        if (!Array.isArray(q.options) || q.options.length < 2) errs.push(at + ".options");
+        else q.options.forEach((o, j) => {
+          if (!o || typeof o.label !== "string" || !o.label.trim() || typeof o.emoji !== "string" || !o.emoji) errs.push(at + ".options[" + j + "]");
+        });
+      } else if (q.kind === "person") {
+        if (q.options !== undefined) errs.push(at + ".options bei person");
+      } else errs.push(at + ".kind");
+    });
+  }
+  if (errs.length) {
+    errs.forEach((x) => console.error("[FeedJack] Datenfehler:", x));
+    fail("E13", errs.length + " Datenfehler");
+    return false;
+  }
+  console.info("[FeedJack] Daten ok:", QUESTIONS.length, "Fragen,", VERSION);
+  return true;
+}
+
+// ---------- firebase ----------
+function checkConfig() {
+  if (typeof firebaseConfig !== "object" || !firebaseConfig) return "firebaseConfig fehlt";
+  if (typeof FIREBASE_DB_REGION !== "string" || !FIREBASE_DB_REGION) return "FIREBASE_DB_REGION fehlt";
+  const url = firebaseConfig.databaseURL;
+  if (!url) return "databaseURL fehlt";
+  if (JSON.stringify(firebaseConfig).indexOf("PASTE_") !== -1) return "Platzhalter noch nicht ersetzt";
+  const expect = FIREBASE_DB_REGION === "us-central1" ? ".firebaseio.com" : "." + FIREBASE_DB_REGION + ".firebasedatabase.app";
+  if (url.indexOf("https://") !== 0 || url.indexOf(expect) === -1) return "databaseURL passt nicht zu Region " + FIREBASE_DB_REGION;
+  return "";
+}
+
+function setConn(on) {
+  S.connected = on;
+  const el = $('#conn');
+  el.textContent = on ? "Online" : "Offline";
+  el.className = "conn " + (on ? "on" : "off");
+}
+
+function initFirebase() {
+  if (typeof firebase === "undefined" || !firebase.database) { S.initErr = "E01"; fail("E01"); setConn(false); return; }
+  const problem = checkConfig();
+  if (problem) { S.initErr = "E02"; fail("E02", problem); setConn(false); return; }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    S.db = firebase.database();
+  } catch (e) { S.initErr = "E03"; fail("E03", e && e.message); setConn(false); return; }
+  S.db.ref(".info/connected").on("value",
+    (snap) => setConn(snap.val() === true),
+    (err) => fail("E16", err && err.message));
+  setTimeout(() => { if (!S.connected) fail("E03", "nach " + CFG.timeoutMs + " ms nicht verbunden"); }, CFG.timeoutMs);
+}
+
+function needDb() {
+  if (S.db) return true;
+  fail(S.initErr || "E02");
+  return false;
+}
+
+function listenState() {
+  let got = false;
+  const t = setTimeout(() => { if (!got) fail("E03", "Raumdaten nicht innert " + CFG.timeoutMs + " ms"); }, CFG.timeoutMs);
+  S.stateRef = roomRef("state");
+  S.stateRef.on("value",
+    (snap) => { got = true; clearTimeout(t); onState(snap.val()); },
+    (err) => { clearTimeout(t); fail("E16", err && err.message); });
+}
+
+function onState(st) {
+  S.state = st;
+  if (!st) { showWait("🤷", "Raum nicht gefunden", "Diesen Raum gibt es nicht mehr."); return; }
+  if (S.role === "host") renderHost(st);
+  else renderPlayer(st);
+}
+
+// ---------- host ----------
+async function createRoom() {
+  if (!needDb() || S.role) return;
+  try {
+    for (let i = 0; i < CFG.codeTries; i++) {
+      const code = randCode();
+      const snap = await withTimeout(S.db.ref("rooms/" + code + "/state").once("value"), "E04");
+      if (snap.exists()) continue;
+      await withTimeout(S.db.ref("rooms/" + code).set({
+        meta: { created: serverTime(), v: VERSION },
+        state: { phase: "lobby", q: 0 }
+      }), "E04");
+      lsSet("fj_host", code);
+      enterHost(code);
+      return;
+    }
+    fail("E04", "kein freier Code gefunden");
+  } catch (e) { fail(e.code || "E04", e.detail || e.message); }
+}
+
+async function resumeHost() {
+  if (!needDb() || S.role) return;
+  const code = cleanCode(lsGet("fj_host"));
+  if (code.length !== CFG.codeLength) { lsDel("fj_host"); $('#resumeBox').hidden = true; fail("E12", "kein gespeicherter Raum"); return; }
+  try {
+    const snap = await withTimeout(S.db.ref("rooms/" + code + "/state").once("value"), "E12");
+    if (!snap.exists()) { lsDel("fj_host"); $('#resumeBox').hidden = true; fail("E06"); return; }
+    enterHost(code);
+  } catch (e) { fail(e.code || "E12", e.detail || e.message); }
+}
+
+function enterHost(code) {
+  clearErr();
+  S.role = "host";
+  S.room = code;
+  $('#hCode').textContent = code;
+  $('#hLink').textContent = location.origin + location.pathname + "?room=" + code;
+  S.playersRef = roomRef("players");
+  S.playersRef.on("value",
+    (snap) => { S.players = snap.val() || {}; if (S.state && S.state.phase === "lobby") renderLobby(); },
+    (err) => fail("E16", err && err.message));
+  listenState();
+}
+
+function renderHost(st) {
+  if (st.phase !== "question") detachAnswers();
+  if (st.phase === "lobby") { showScreen("scrHLobby"); renderLobby(); }
+  else if (st.phase === "question") renderHostQuestion(st);
+  else if (st.phase === "reveal") renderReveal(st);
+  else if (st.phase === "end") renderAwards(st);
+  else fail("E13", "unbekannte Phase: " + st.phase);
+}
+
+function sortedPlayers() {
+  return Object.keys(S.players).map((id) => {
+    const p = S.players[id] || {};
+    return { id: id, name: cleanName(p.name), t: (typeof p.t === "number") ? p.t : 0 };
+  }).sort((a, b) => (a.t - b.t) || (a.id < b.id ? -1 : 1));
+}
+
+function renderLobby() {
+  const list = sortedPlayers();
+  const ul = $('#hPlayers');
+  ul.textContent = "";
+  list.forEach((p, i) => {
+    const over = i >= CFG.maxPlayers;
+    const li = document.createElement("li");
+    li.className = "chip" + (over ? " over" : "");
+    li.textContent = DATA.avatars[i % DATA.avatars.length] + " " + (p.name || "?") + (over ? " (Platz voll)" : "");
+    ul.appendChild(li);
+  });
+  const n = Math.min(list.length, CFG.maxPlayers);
+  $('#hCount').textContent = n + " von " + CFG.maxPlayers + " dabei";
+  $('#hLobbyHint').textContent = n < CFG.minPlayers
+    ? "Es braucht mindestens " + CFG.minPlayers + " Personen."
+    : "Alle da? Dann los!";
+}
+
+function buildRoster() {
+  const seen = {};
+  return sortedPlayers().slice(0, CFG.maxPlayers).map((p, i) => {
+    const base = p.name || "?";
+    seen[base] = (seen[base] || 0) + 1;
+    let name = base;
+    if (seen[base] > 1) {
+      const suffix = " " + seen[base];
+      name = trimTo(base, CFG.nameMaxLen - suffix.length).trim() + suffix;
+    }
+    return { id: p.id, name: name, av: DATA.avatars[i % DATA.avatars.length] };
+  });
+}
+
+async function writeState(st) {
+  try { await withTimeout(roomRef("state").set(st), "E10"); return true; }
+  catch (e) { fail(e.code || "E10", e.detail || e.message); return false; }
+}
+
+async function startGame() {
+  if (!S.state || S.state.phase !== "lobby") return;
+  const roster = buildRoster();
+  if (roster.length < CFG.minPlayers) {
+    $('#hLobbyHint').textContent = "Es braucht mindestens " + CFG.minPlayers + " Personen.";
+    return;
+  }
+  await writeState({ phase: "question", q: 0, roster: roster });
+}
+
+function renderHostQuestion(st) {
+  const q = qAt(st);
+  if (!q) return;
+  showScreen("scrHQuestion");
+  $('#hQNum').textContent = "Frage " + (st.q + 1) + " von " + QUESTIONS.length;
+  $('#hQEmoji').textContent = q.emoji;
+  $('#hQText').textContent = q.text;
+  $('#hQKind').textContent = q.kind === "person" ? "Stimme anonym für eine Person ab." : "Bewerte uns als Team, anonym.";
+  attachAnswers(st.q);
+  renderAnswered();
+  scheduleBots(st);
+}
+
+function attachAnswers(qi) {
+  if (S.ansRef && S.ansQ === qi) return;
+  detachAnswers();
+  S.answered = {};
+  S.ansQ = qi;
+  S.ansRef = roomRef("answers/q" + qi);
+  S.ansCb = S.ansRef.on("value",
+    (snap) => {
+      const v = snap.val() || {};
+      const done = {};
+      Object.keys(v).forEach((id) => { if (v[id] !== null && v[id] !== undefined) done[id] = true; });
+      S.answered = done;
+      renderAnswered();
+    },
+    (err) => fail("E16", err && err.message));
+}
+
+function detachAnswers() {
+  if (S.ansRef && S.ansCb) S.ansRef.off("value", S.ansCb);
+  S.ansRef = null;
+  S.ansCb = null;
+  S.ansQ = null;
+  S.answered = {};
+}
+
+function renderAnswered() {
+  const roster = rosterOf(S.state);
+  const total = roster.length;
+  const n = roster.filter((r) => S.answered[r.id]).length;
+  $('#hAnswered').textContent = n + " von " + total + " haben geantwortet";
+  $('#hProgFill').style.width = (total ? Math.round(100 * n / total) : 0) + "%";
+  const ul = $('#hAnsChips');
+  ul.textContent = "";
+  roster.forEach((r) => {
+    const li = document.createElement("li");
+    li.className = "chip" + (S.answered[r.id] ? " done" : "");
+    li.textContent = (S.answered[r.id] ? "✅ " : r.av + " ") + r.name;
+    ul.appendChild(li);
+  });
+}
+
+function tally(q, roster, answers) {
+  const ids = roster.map((r) => r.id);
+  const counts = q.kind === "person" ? roster.map(() => 0) : q.options.map(() => 0);
+  let voters = 0;
+  ids.forEach((pid) => {
+    const v = answers[pid];
+    if (v === null || v === undefined) return;
+    if (q.kind === "person") {
+      const idx = ids.indexOf(v);
+      if (idx < 0 || ids[idx] === pid) return;
+      counts[idx]++;
+    } else {
+      if (!Number.isInteger(v) || v < 0 || v >= q.options.length) return;
+      counts[v]++;
+    }
+    voters++;
+  });
+  return { counts: counts, voters: voters };
+}
+
+async function revealQ() {
+  const st = S.state;
+  if (!st || st.phase !== "question") return;
+  const q = qAt(st);
+  if (!q) return;
+  let answers;
+  try {
+    const snap = await withTimeout(roomRef("answers/q" + st.q).once("value"), "E15");
+    answers = snap.val() || {};
+  } catch (e) { fail(e.code || "E15", e.detail || e.message); return; }
+  const results = Object.assign({}, st.results || {});
+  results["q" + st.q] = tally(q, rosterOf(st), answers);
+  await writeState(Object.assign({}, st, { phase: "reveal", results: results }));
+}
+
+async function nextQ() {
+  const st = S.state;
+  if (!st || st.phase !== "reveal") return;
+  if (st.q + 1 < QUESTIONS.length) await writeState(Object.assign({}, st, { phase: "question", q: st.q + 1 }));
+  else await writeState(Object.assign({}, st, { phase: "end" }));
+}
+
+function resultItems(q, roster, res) {
+  const counts = (res && Array.isArray(res.counts)) ? res.counts : [];
+  if (q.kind === "person") return roster.map((r, i) => ({ label: r.av + " " + r.name, n: counts[i] || 0 }));
+  return q.options.map((o, i) => ({ label: o.emoji + " " + o.label, n: counts[i] || 0 }));
+}
+
+function summaryLine(q, res) {
+  const voters = (res && res.voters) || 0;
+  if (!voters) return "Keine Stimmen";
+  const word = voters === 1 ? " Stimme" : " Stimmen";
+  if (q.kind === "person") return voters + word;
+  const counts = Array.isArray(res.counts) ? res.counts : [];
+  let sum = 0;
+  q.options.forEach((o, i) => { sum += (i + 1) * (counts[i] || 0); });
+  return "Schnitt " + (sum / voters).toFixed(1) + " von " + q.options.length + ", " + voters + word;
+}
+
+function renderReveal(st) {
+  const q = qAt(st);
+  if (!q) return;
+  showScreen("scrHReveal");
+  $('#hRQNum').textContent = "Frage " + (st.q + 1) + " von " + QUESTIONS.length;
+  $('#hRQText').textContent = q.emoji + " " + q.text;
+  $('#btnNext').textContent = st.q + 1 < QUESTIONS.length ? "Nächste Frage ➜" : "Zur Siegerehrung 🏆";
+  const box = $('#hRBars');
+  box.textContent = "";
+  const res = (st.results || {})["q" + st.q];
+  if (!res) { fail("E13", "Resultat fehlt für Frage " + st.q); $('#hRNote').textContent = ""; return; }
+  const items = resultItems(q, rosterOf(st), res);
+  const max = Math.max(0, ...items.map((it) => it.n));
+  const shown = q.kind === "person" ? items.slice().sort((a, b) => b.n - a.n) : items;
+  shown.forEach((it) => {
+    const top = it.n === max && max > 0;
+    const row = document.createElement("div");
+    row.className = "bar-row" + (top ? " top" : "");
+    const lab = document.createElement("span");
+    lab.className = "bar-label";
+    lab.textContent = (top && q.kind === "person" ? "👑 " : "") + it.label;
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = (max > 0 ? Math.round(100 * it.n / max) : 0) + "%";
+    track.appendChild(fill);
+    const num = document.createElement("span");
+    num.className = "bar-n";
+    num.textContent = String(it.n);
+    row.append(lab, track, num);
+    box.appendChild(row);
+  });
+  $('#hRNote').textContent = summaryLine(q, res);
+}
+
+function awardText(q, roster, res) {
+  if (!res || !res.voters) return "Keine Stimmen";
+  const items = resultItems(q, roster, res);
+  const max = Math.max(0, ...items.map((it) => it.n));
+  const top = items.filter((it) => it.n === max).map((it) => it.label).join(", ");
+  return q.kind === "person" ? "👑 " + top : top + " (" + summaryLine(q, res) + ")";
+}
+
+function renderAwards(st) {
+  showScreen("scrHEnd");
+  const box = $('#hAwards');
+  box.textContent = "";
+  const roster = rosterOf(st);
+  QUESTIONS.forEach((q, qi) => {
+    const res = (st.results || {})["q" + qi];
+    const card = document.createElement("div");
+    card.className = "award";
+    const h = document.createElement("div");
+    h.className = "award-q";
+    h.textContent = q.emoji + " " + q.text;
+    const w = document.createElement("div");
+    w.className = "award-w";
+    w.textContent = awardText(q, roster, res);
+    card.append(h, w);
+    box.appendChild(card);
+  });
+}
+
+function newRoom() {
+  lsDel("fj_host");
+  location.href = location.pathname;
+}
+
+// ---------- test bots (host only, keys b and B) ----------
+function spawnBots(overCap) {
+  if (S.role !== "host" || !S.state || S.state.phase !== "lobby") return;
+  const have = Object.keys(S.players).length;
+  const want = overCap ? CFG.maxPlayers + CFG.botMargin : CFG.maxPlayers;
+  for (let i = have; i < want; i++) {
+    const name = cleanName(DATA.botNames[(i - have) % DATA.botNames.length]);
+    const id = randId("bot");
+    const delay = CFG.botMinDelayMs + Math.random() * (CFG.botMaxDelayMs - CFG.botMinDelayMs) / 2;
+    setTimeout(() => {
+      withTimeout(roomRef("players/" + id).set({ name: name, t: serverTime() }), "E14")
+        .catch((e) => fail(e.code || "E14", e.detail));
+    }, delay);
+  }
+  console.info("[FeedJack] Bots:", Math.max(0, want - have));
+}
+
+function scheduleBots(st) {
+  if (S.botQ === st.q) return;
+  S.botQ = st.q;
+  const qi = st.q;
+  const q = QUESTIONS[qi];
+  const roster = rosterOf(st);
+  roster.forEach((r) => {
+    if (r.id.indexOf("bot") !== 0) return;
+    if (Math.random() < CFG.botSkipRate) return;
+    const delay = CFG.botMinDelayMs + Math.random() * (CFG.botMaxDelayMs - CFG.botMinDelayMs);
+    setTimeout(() => {
+      let val;
+      if (q.kind === "person") {
+        const others = roster.filter((o) => o.id !== r.id);
+        if (!others.length) return;
+        val = others[Math.floor(Math.random() * others.length)].id;
+      } else {
+        val = Math.floor(Math.random() * q.options.length);
+      }
+      withTimeout(roomRef("answers/q" + qi + "/" + r.id).set(val), "E14")
+        .catch((e) => fail(e.code || "E14", e.detail));
+    }, delay);
+  });
+}
+
+// ---------- player ----------
+async function joinRoom() {
+  if (!needDb() || S.role) return;
+  const code = cleanCode($('#inCode').value);
+  const name = cleanName($('#inName').value);
+  if (code.length !== CFG.codeLength) { fail("E06", "Code unvollständig"); return; }
+  if (!name) { fail("E11"); return; }
+  try {
+    const stSnap = await withTimeout(S.db.ref("rooms/" + code + "/state").once("value"), "E05");
+    const st = stSnap.val();
+    if (!st) { fail("E06"); return; }
+    const pidKey = "fj_pid_" + code + "_" + name;
+    const pid = lsGet(pidKey) || randId("p");
+    const plSnap = await withTimeout(S.db.ref("rooms/" + code + "/players").once("value"), "E05");
+    const players = plSnap.val() || {};
+    if (!players[pid]) {
+      if (st.phase !== "lobby") { fail("E08"); return; }
+      if (Object.keys(players).length >= CFG.maxPlayers) { fail("E07"); return; }
+      await withTimeout(S.db.ref("rooms/" + code + "/players/" + pid).set({ name: name, t: serverTime() }), "E05");
+    }
+    lsSet(pidKey, pid);
+    lsSet("fj_name", name);
+    clearErr();
+    S.role = "player";
+    S.room = code;
+    S.pid = pid;
+    S.name = (players[pid] && cleanName(players[pid].name)) || name;
+    listenState();
+  } catch (e) { fail(e.code || "E05", e.detail || e.message); }
+}
+
+function renderPlayer(st) {
+  const seq = ++S.renderSeq;
+  const me = rosterOf(st).filter((r) => r.id === S.pid)[0];
+  if (st.phase === "lobby") { showWait("🙌", "Du bist drin, " + S.name + "!", "Warte kurz, gleich geht es los."); return; }
+  if (!me) { showWait("🙈", "Diese Runde läuft schon", "Beim nächsten Mal bist du dabei."); return; }
+  if (st.phase === "question") { renderPlayerQuestion(st, seq); return; }
+  if (st.phase === "reveal") { showWait("👀", "Auflösung!", "Schau auf den grossen Screen."); return; }
+  if (st.phase === "end") { showWait("🎉", "Danke fürs Mitmachen!", "Das war FeedJack. Bis zur nächsten Retro."); return; }
+  fail("E13", "unbekannte Phase: " + st.phase);
+}
+
+async function renderPlayerQuestion(st, seq) {
+  const q = qAt(st);
+  if (!q) return;
+  const qi = st.q;
+  let mine = null;
+  try {
+    const snap = await withTimeout(roomRef("answers/q" + qi + "/" + S.pid).once("value"), "E17");
+    mine = snap.val();
+  } catch (e) { fail(e.code || "E17", e.detail || e.message); }
+  if (seq !== S.renderSeq) return;
+  if (mine !== null && mine !== undefined) { showWait("✅", "Antwort ist drin", "Danke! Schau nach vorne."); return; }
+  $('#pQNum').textContent = "Frage " + (qi + 1) + " von " + QUESTIONS.length;
+  $('#pQEmoji').textContent = q.emoji;
+  $('#pQText').textContent = q.text;
+  const box = $('#pOptions');
+  box.textContent = "";
+  const opts = q.kind === "person"
+    ? rosterOf(st).map((r) => ({ label: r.av + " " + r.name, value: r.id, self: r.id === S.pid }))
+    : q.options.map((o, i) => ({ label: o.emoji + " " + o.label, value: i, self: false }));
+  opts.forEach((o) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt";
+    b.textContent = o.label + (o.self ? " (du)" : "");
+    b.disabled = o.self;
+    if (o.self) b.dataset.self = "1";
+    b.addEventListener("click", () => sendAnswer(qi, o.value, seq, b));
+    box.appendChild(b);
+  });
+  showScreen("scrPQuestion");
+}
+
+async function sendAnswer(qi, value, seq, btn) {
+  if (S.sending) return;
+  S.sending = true;
+  const btns = $('#pOptions').querySelectorAll("button");
+  btns.forEach((b) => { b.disabled = true; });
+  btn.classList.add("busy");
+  try {
+    await withTimeout(roomRef("answers/q" + qi + "/" + S.pid).set(value), "E09");
+    clearErr();
+    if (seq === S.renderSeq) showWait("✅", "Antwort ist drin", "Danke! Schau nach vorne.");
+  } catch (e) {
+    fail(e.code || "E09", e.detail || e.message);
+    btns.forEach((b) => { b.disabled = b.dataset.self === "1"; });
+  } finally {
+    btn.classList.remove("busy");
+    S.sending = false;
+  }
+}
+
+// ---------- boot ----------
+function boot() {
+  $('#verTag').textContent = "FeedJack " + VERSION;
+  $('#inCode').maxLength = CFG.codeLength;
+  $('#inName').maxLength = CFG.nameMaxLen;
+  $('#errClose').addEventListener("click", clearErr);
+  $('#btnHost').addEventListener("click", () => busy($('#btnHost'), createRoom));
+  $('#btnResume').addEventListener("click", () => busy($('#btnResume'), resumeHost));
+  $('#btnToJoin').addEventListener("click", () => showScreen("scrJoin"));
+  $('#btnJoinBack').addEventListener("click", () => showScreen("scrHome"));
+  $('#btnJoin').addEventListener("click", () => busy($('#btnJoin'), joinRoom));
+  $('#btnStart').addEventListener("click", () => busy($('#btnStart'), startGame));
+  $('#btnReveal').addEventListener("click", () => busy($('#btnReveal'), revealQ));
+  $('#btnNext').addEventListener("click", () => busy($('#btnNext'), nextQ));
+  $('#btnNewRoom').addEventListener("click", newRoom);
+  document.addEventListener("keydown", (e) => {
+    if (S.role !== "host") return;
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (e.key === "b") spawnBots(false);
+    else if (e.key === "B") spawnBots(true);
+  });
+
+  if (!validateData()) return;
+
+  const hostRoom = cleanCode(lsGet("fj_host"));
+  if (hostRoom.length === CFG.codeLength) {
+    $('#resumeCode').textContent = hostRoom;
+    $('#resumeBox').hidden = false;
+  }
+  const rc = cleanCode(new URLSearchParams(location.search).get("room"));
+  if (rc) {
+    $('#inCode').value = rc;
+    $('#inName').value = cleanName(lsGet("fj_name"));
+    showScreen("scrJoin");
+  } else {
+    showScreen("scrHome");
+  }
+  initFirebase();
+}
+
+boot();
+</script>
+</body>
+</html>
